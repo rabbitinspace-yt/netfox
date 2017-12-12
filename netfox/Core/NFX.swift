@@ -139,6 +139,13 @@ open class NFX: NSObject
         showNFX()
     }
     
+    #if os(iOS)
+    @objc open func show(in controller: UIViewController) {
+        guard self.started else { return }
+        showNFX(in: controller)
+    }
+    #endif
+    
     @objc open func hide()
     {
         guard self.started else { return }
@@ -161,13 +168,17 @@ open class NFX: NSObject
         return self.lastVisitDate
     }
     
-    fileprivate func showNFX()
+    fileprivate func showNFX(in controller: NFXViewController? = nil)
     {
         if self.presented {
             return
         }
         
-        self.showNFXFollowingPlatform()
+        #if os(iOS)
+            self.showNFXFollowingPlatform(in: controller)
+        #else
+            self.showNFXFollowingPlatform()
+        #endif
         self.presented = true
 
     }
@@ -252,20 +263,24 @@ extension NFX {
         return rootViewController?.presentedViewController ?? rootViewController
     }
 
-    fileprivate func showNFXFollowingPlatform()
+    fileprivate func showNFXFollowingPlatform(in controller: UIViewController? = nil)
     {
-        var navigationController: UINavigationController?
-        
         var listController: NFXListController_iOS
         listController = NFXListController_iOS()
         
-        navigationController = UINavigationController(rootViewController: listController)
-        navigationController!.navigationBar.isTranslucent = false
-        navigationController!.navigationBar.tintColor = UIColor.NFXOrangeColor()
-        navigationController!.navigationBar.barTintColor = UIColor.NFXStarkWhiteColor()
-        navigationController!.navigationBar.titleTextAttributes = [NSAttributedStringKey.foregroundColor: UIColor.NFXOrangeColor()]
-        
-        presentingViewController?.present(navigationController!, animated: true, completion: nil)
+        if let presentingController = controller {
+            presentingController.show(listController, sender: nil)
+        } else {
+            var navigationController: UINavigationController?
+            
+            navigationController = UINavigationController(rootViewController: listController)
+            navigationController!.navigationBar.isTranslucent = false
+            navigationController!.navigationBar.tintColor = UIColor.NFXOrangeColor()
+            navigationController!.navigationBar.barTintColor = UIColor.NFXStarkWhiteColor()
+            navigationController!.navigationBar.titleTextAttributes = [NSAttributedStringKey.foregroundColor: UIColor.NFXOrangeColor()]
+            
+            presentingViewController?.present(navigationController!, animated: true, completion: nil)
+        }
     }
     
     fileprivate func hideNFXFollowingPlatform(_ completion: (() -> Void)?)
