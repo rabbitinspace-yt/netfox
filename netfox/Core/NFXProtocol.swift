@@ -14,6 +14,8 @@ open class NFXProtocol: URLProtocol
     var model: NFXHTTPModel?
     var session: URLSession?
     
+    private let delegateQueue = OperationQueue()
+    
     override open class func canInit(with request: URLRequest) -> Bool
     {
         return canServeRequest(request)
@@ -65,7 +67,7 @@ open class NFXProtocol: URLProtocol
         URLProtocol.setProperty("1", forKey: "NFXInternal", in: req)
         
         if (session == nil) {
-            session = URLSession(configuration: URLSessionConfiguration.default)
+            session = URLSession(configuration: URLSessionConfiguration.default, delegate: self, delegateQueue: delegateQueue)
         }
         
         session!.dataTask(with: req as URLRequest, completionHandler: {data, response, error in
@@ -118,4 +120,15 @@ open class NFXProtocol: URLProtocol
         NotificationCenter.default.post(name: Notification.Name(rawValue: "NFXReloadData"), object: nil)
     }
     
+}
+
+extension NFXProtocol: URLSessionDelegate {
+    public func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        guard let serverTrust = challenge.protectionSpace.serverTrust, let certificate = SecTrustGetCertificateAtIndex(serverTrust, 0) else {
+            completionHandler(.performDefaultHandling, nil)
+            return
+        }
+        
+        completionHandler(.useCredential, URLCredential(trust: serverTrust))
+    }
 }
